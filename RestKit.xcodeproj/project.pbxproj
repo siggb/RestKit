@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0B2C7F7B1E30F09E00509E89 /* RKManagedObjectStore_Private.h in Headers */ = {isa = PBXBuildFile; fileRef = 0B2C7F7A1E30F09E00509E89 /* RKManagedObjectStore_Private.h */; };
+		0B2C7F7C1E30F09E00509E89 /* RKManagedObjectStore_Private.h in Headers */ = {isa = PBXBuildFile; fileRef = 0B2C7F7A1E30F09E00509E89 /* RKManagedObjectStore_Private.h */; };
 		2502C8ED15F79CF70060FD75 /* CoreData.h in Headers */ = {isa = PBXBuildFile; fileRef = 2502C8E715F79CF70060FD75 /* CoreData.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		2502C8EE15F79CF70060FD75 /* CoreData.h in Headers */ = {isa = PBXBuildFile; fileRef = 2502C8E715F79CF70060FD75 /* CoreData.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		2502C8EF15F79CF70060FD75 /* Network.h in Headers */ = {isa = PBXBuildFile; fileRef = 2502C8E815F79CF70060FD75 /* Network.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -640,6 +642,7 @@
 /* Begin PBXFileReference section */
 		04D69B4B2A54475834B333CF /* Pods-osx.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-osx.release.xcconfig"; path = "Pods/Target Support Files/Pods-osx/Pods-osx.release.xcconfig"; sourceTree = "<group>"; };
 		061E3E4524CE8EF78257C26C /* Pods-ios.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ios.release.xcconfig"; path = "Pods/Target Support Files/Pods-ios/Pods-ios.release.xcconfig"; sourceTree = "<group>"; };
+		0B2C7F7A1E30F09E00509E89 /* RKManagedObjectStore_Private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RKManagedObjectStore_Private.h; sourceTree = "<group>"; };
 		147F950728350A64F103F55D /* Pods-ios.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ios.debug.xcconfig"; path = "Pods/Target Support Files/Pods-ios/Pods-ios.debug.xcconfig"; sourceTree = "<group>"; };
 		2501405215366000004E0466 /* RKObjectiveCppTest.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = RKObjectiveCppTest.mm; sourceTree = "<group>"; };
 		2502C8E715F79CF70060FD75 /* CoreData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CoreData.h; sourceTree = "<group>"; };
@@ -1165,6 +1168,7 @@
 				2597F99A15AF6DC400E547D7 /* RKRelationshipConnectionOperation.h */,
 				2597F99B15AF6DC400E547D7 /* RKRelationshipConnectionOperation.m */,
 				C0F11CE71908C7E60054AEA0 /* RKCoreData.h */,
+				0B2C7F7A1E30F09E00509E89 /* RKManagedObjectStore_Private.h */,
 			);
 			path = CoreData;
 			sourceTree = "<group>";
@@ -1801,6 +1805,7 @@
 				252CCE7617E0CA2700B7F0BF /* RKISO8601DateFormatter.h in Headers */,
 				25160E4C145650490060A5C5 /* RKMIMETypes.h in Headers */,
 				25160E4E145650490060A5C5 /* RKSerialization.h in Headers */,
+				0B2C7F7B1E30F09E00509E89 /* RKManagedObjectStore_Private.h in Headers */,
 				25160EE21456532C0060A5C5 /* lcl_RK.h in Headers */,
 				25160F081456532C0060A5C5 /* SOCKit.h in Headers */,
 				25160E2E145650490060A5C5 /* RestKit.h in Headers */,
@@ -1913,6 +1918,7 @@
 				25160F901456576C0060A5C5 /* RKDotNetDateFormatter.h in Headers */,
 				25160F931456576C0060A5C5 /* RKLog.h in Headers */,
 				25160F951456576C0060A5C5 /* RKMIMETypes.h in Headers */,
+				0B2C7F7C1E30F09E00509E89 /* RKManagedObjectStore_Private.h in Headers */,
 				25160F971456576C0060A5C5 /* RKSerialization.h in Headers */,
 				25160F25145655AF0060A5C5 /* RestKit.h in Headers */,
 				25B408271491CDDC00F21111 /* RKPathUtilities.h in Headers */,

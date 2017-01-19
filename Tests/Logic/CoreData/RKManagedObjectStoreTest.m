@@ -18,10 +18,12 @@
 //  limitations under the License.
 //
 
+#import "CoreData.h"
 #import "RKTestEnvironment.h"
 #import "RKHuman.h"
 #import "RKPathUtilities.h"
 #import "RKSearchIndexer.h"
+#import "RKManagedObjectStore_Private.h"
 
 // TODO: Does this become `RKManagedObjectStore managedObjectModelWithName:version:inBundle:` ??? URLForManagedObjectModel
 static NSURL *RKURLForManagedObjectModelWithNameAtVersion(NSString *modelName, NSUInteger version)
@@ -37,8 +39,14 @@ static NSManagedObjectModel *RKManagedObjectModelWithNameAtVersion(NSString *mod
     return model;
 }
 
-@interface RKManagedObjectStoreTest : RKTestCase
+static NSManagedObjectModel *RKManagedObjectModel()
+{
+    NSURL *modelURL = [[RKTestFixture fixtureBundle] URLForResource:@"Data Model" withExtension:@"mom"];
+    return [[NSManagedObjectModel alloc] initWithContentsOfURL:modelURL];
+}
 
+@interface RKManagedObjectStoreTest : RKTestCase
+@property (nonatomic, strong) id observerReference;
 @end
 
 @implementation RKManagedObjectStoreTest
@@ -62,6 +70,7 @@ static NSManagedObjectModel *RKManagedObjectModelWithNameAtVersion(NSString *mod
 
 - (void)tearDown
 {
+    if (self.observerReference) [[NSNotificationCenter defaultCenter] removeObserver:self.observerReference];
     [RKTestFactory tearDown];
 }
 
@@ -77,16 +86,16 @@ static NSManagedObjectModel *RKManagedObjectModelWithNameAtVersion(NSString *mod
     expect(persistentStore).notTo.beNil();
     BOOL fileExists = [[NSFileManager defaultManager] fileExistsAtPath:seedPath];
     expect(fileExists).to.beTruthy();
-
+    
     // Create a secondary store using the seed
     RKManagedObjectStore *managedObjectStore = [[RKManagedObjectStore alloc] initWithManagedObjectModel:model];
-    NSString *storePath = [RKApplicationDataDirectory() stringByAppendingPathComponent:@"Test.sqlite"];    
+    NSString *storePath = [RKApplicationDataDirectory() stringByAppendingPathComponent:@"Test.sqlite"];
     persistentStore = [managedObjectStore addSQLitePersistentStoreAtPath:storePath fromSeedDatabaseAtPath:seedPath withConfiguration:nil options:nil error:&error];
     expect(persistentStore).notTo.beNil();
-
+    
     fileExists = [[NSFileManager defaultManager] fileExistsAtPath:storePath];
     expect(fileExists).to.beTruthy();
-
+    
     // Check that the store has a reference to the seed file option
     NSString *seedDatabasePath = [[persistentStore options] valueForKey:RKSQLitePersistentStoreSeedDatabasePathOption];
     expect(seedDatabasePath).to.equal(seedPath);
@@ -108,14 +117,14 @@ static NSManagedObjectModel *RKManagedObjectModelWithNameAtVersion(NSString *mod
     BOOL success = [seedStore.mainQueueManagedObjectContext saveToPersistentStore:&error];
     assertThatBool(success, is(equalToBool(YES)));
     NSManagedObjectID *seedObjectID = human.objectID;
-
+    
     // Create a secondary store using the first store as the seed
     NSString *storePath = [RKApplicationDataDirectory() stringByAppendingPathComponent:@"SeededStore.sqlite"];
     RKManagedObjectStore *seededStore = [[RKManagedObjectStore alloc] initWithManagedObjectModel:model];
     NSPersistentStore *persistentStore = [seededStore addSQLitePersistentStoreAtPath:storePath fromSeedDatabaseAtPath:seedPath withConfiguration:nil options:nil error:&error];
     assertThat(persistentStore, is(notNilValue()));
     [seededStore createManagedObjectContexts];
-
+    
     // Get back the seeded object
     NSFetchRequest *fetchRequest = [NSFetchRequest fetchRequestWithEntityName:@"Human"];
     fetchRequest.predicate = [NSPredicate predicateWithFormat:@"name = %@", @"Blake"];
@@ -141,14 +150,14 @@ static NSManagedObjectModel *RKManagedObjectModelWithNameAtVersion(NSString *mod
     
     // Spin the run loop to allow the did save notifications to propogate
     [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
-
+    
     success = [managedObjectStore resetPersistentStores:&error];
     assertThatBool(success, is(equalToBool(YES)));
-
+    
     // Check that the persistent store has changed
     NSPersistentStore *newPersistentStore = (managedObjectStore.persistentStoreCoordinator.persistentStores)[0];
     assertThat(newPersistentStore, isNot(equalTo(persistentStore)));
-
+    
     // Check that the object is gone
     NSFetchRequest *fetchRequest = [NSFetchRequest fetchRequestWithEntityName:@"Human"];
     fetchRequest.predicate = [NSPredicate predicateWithFormat:@"name = %@", @"Blake"];
@@ -170,13 +179,13 @@ static NSManagedObjectModel *RKManagedObjectModelWithNameAtVersion(NSString *mod
     human.name = @"Blake";
     BOOL success = [managedObjectStore.mainQueueManagedObjectContext saveToPersistentStore:&error];
     assertThatBool(success, is(equalToBool(YES)));
-
+    
     // Spin the run loop to allow the did save notifications to propogate
     [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
     
     success = [managedObjectStore resetPersistentStores:&error];
     assertThatBool(success, is(equalToBool(YES)));
-
+    
     // Check that the object is gone
     NSFetchRequest *fetchRequest = [NSFetchRequest fetchRequestWithEntityName:@"Human"];
     fetchRequest.predicate = [NSPredicate predicateWithFormat:@"name = %@", @"Blake"];
@@ -195,22 +204,22 @@ static NSManagedObjectModel *RKManagedObjectModelWithNameAtVersion(NSString *mod
     NSPersistentStore *persistentStore = [managedObjectStore addSQLitePersistentStoreAtPath:storePath fromSeedDatabaseAtPath:nil withConfiguration:nil options:nil error:&error];
     assertThat(persistentStore, is(notNilValue()));
     [managedObjectStore createManagedObjectContexts];
-
+    
     NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:storePath error:&error];
     assertThat(attributes, is(notNilValue()));
     NSDate *modificationDate = attributes[NSFileModificationDate];
-
+    
     BOOL success = [managedObjectStore resetPersistentStores:&error];
     assertThatBool(success, is(equalToBool(YES)));
-
+    
     // Check that the persistent store has changed
     NSPersistentStore *newPersistentStore = (managedObjectStore.persistentStoreCoordinator.persistentStores)[0];
     assertThat(newPersistentStore, isNot(equalTo(persistentStore)));
-
+    
     attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:storePath error:&error];
     assertThat(attributes, is(notNilValue()));
     NSDate *newModificationDate = attributes[NSFileModificationDate];
-
+    
     NSDate *laterDate = [modificationDate laterDate:newModificationDate];
     assertThat(laterDate, is(equalTo(newModificationDate)));
 }
@@ -231,24 +240,24 @@ static NSManagedObjectModel *RKManagedObjectModelWithNameAtVersion(NSString *mod
     BOOL success = [seedStore.mainQueueManagedObjectContext saveToPersistentStore:&error];
     assertThatBool(success, is(equalToBool(YES)));
     NSManagedObjectID *seedObjectID = human.objectID;
-
+    
     // Create a secondary store using the first store as the seed
     NSString *storePath = [RKApplicationDataDirectory() stringByAppendingPathComponent:@"SeededStore.sqlite"];
     RKManagedObjectStore *seededStore = [[RKManagedObjectStore alloc] initWithManagedObjectModel:model];
     NSPersistentStore *persistentStore = [seededStore addSQLitePersistentStoreAtPath:storePath fromSeedDatabaseAtPath:seedPath withConfiguration:nil options:nil error:&error];
     assertThat(persistentStore, is(notNilValue()));
     [seededStore createManagedObjectContexts];
-
+    
     // Create a second object in the seeded store
     RKHuman *human2 = [NSEntityDescription insertNewObjectForEntityForName:@"Human" inManagedObjectContext:seedStore.persistentStoreManagedObjectContext];
     human2.name = @"Sarah";
     success = [seededStore.mainQueueManagedObjectContext saveToPersistentStore:&error];
     assertThatBool(success, is(equalToBool(YES)));
-
+    
     // Reset the persistent stores, causing the seed database to be recopied and orphaning the second object
     success = [seededStore resetPersistentStores:&error];
     assertThatBool(success, is(equalToBool(YES)));
-
+    
     // Get back the seeded object and check against the seeded object ID
     NSFetchRequest *fetchRequest = [NSFetchRequest fetchRequestWithEntityName:@"Human"];
     fetchRequest.predicate = [NSPredicate predicateWithFormat:@"name = %@", @"Blake"];
@@ -256,7 +265,7 @@ static NSManagedObjectModel *RKManagedObjectModelWithNameAtVersion(NSString *mod
     assertThat(array, isNot(isEmpty()));
     RKHuman *seededHuman = array[0];
     assertThat([[seededHuman.objectID URIRepresentation] URLByDeletingLastPathComponent], is(equalTo([[seedObjectID URIRepresentation] URLByDeletingLastPathComponent])));
-
+    
     // Check that the secondary object does not exist
     fetchRequest = [NSFetchRequest fetchRequestWithEntityName:@"Human"];
     fetchRequest.predicate = [NSPredicate predicateWithFormat:@"name = %@", @"Sarah"];
@@ -294,7 +303,7 @@ static NSManagedObjectModel *RKManagedObjectModelWithNameAtVersion(NSString *mod
     RKManagedObjectStore *managedObjectStore = [[RKManagedObjectStore alloc] initWithManagedObjectModel:model];
     NSError *error;
     NSString *storePath = [RKApplicationDataDirectory() stringByAppendingPathComponent:@"TestBackupExclusion.sqlite"];
-    [managedObjectStore addSQLitePersistentStoreAtPath:storePath fromSeedDatabaseAtPath:nil withConfiguration:nil options:nil error:&error];    
+    [managedObjectStore addSQLitePersistentStoreAtPath:storePath fromSeedDatabaseAtPath:nil withConfiguration:nil options:nil error:&error];
     NSURL *storeURL = [NSURL fileURLWithPath:storePath];
     id resourceValue = nil;
     BOOL success = [storeURL getResourceValue:&resourceValue forKey:NSURLIsExcludedFromBackupKey error:&error];
@@ -341,25 +350,25 @@ static NSManagedObjectModel *RKManagedObjectModelWithNameAtVersion(NSString *mod
     NSPersistentStore *persistentStore = [managedObjectStore addSQLitePersistentStoreAtPath:storePath fromSeedDatabaseAtPath:nil withConfiguration:nil options:nil error:&error];
     assertThat(persistentStore, is(notNilValue()));
     [managedObjectStore createManagedObjectContexts];
-
+    
     // Check for a SQLite write-ahead log
     NSString *writeAheadLogFile = [storePath stringByAppendingString:@"-wal"];
     if ([[NSFileManager defaultManager] fileExistsAtPath:writeAheadLogFile]) {
         NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:writeAheadLogFile error:&error];
         NSDate *creationDate = attributes[NSFileCreationDate];
-
+        
         BOOL success = [managedObjectStore resetPersistentStores:&error];
         expect(success).to.equal(YES);
-
+        
         attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:writeAheadLogFile error:&error];
         NSDate *newCreationDate = attributes[NSFileCreationDate];
-
+        
         expect([creationDate laterDate:newCreationDate]).to.equal(newCreationDate);
     } else {
         // Fall back to support directory
         NSString *supportDirectoryName = [NSString stringWithFormat:@".%@_SUPPORT", [[persistentStore.URL lastPathComponent] stringByDeletingPathExtension]];
         NSURL *supportDirectoryFileURL = [NSURL URLWithString:supportDirectoryName relativeToURL:[persistentStore.URL URLByDeletingLastPathComponent]];
-
+        
         BOOL isDirectory = NO;
         BOOL supportDirectoryExists = [[NSFileManager defaultManager] fileExistsAtPath:[supportDirectoryFileURL path] isDirectory:&isDirectory];
         expect(supportDirectoryExists).to.equal(YES);
@@ -395,19 +404,19 @@ static NSManagedObjectModel *RKManagedObjectModelWithNameAtVersion(NSString *mod
     NSPersistentStore *persistentStore = [managedObjectStore addSQLitePersistentStoreAtPath:storePath fromSeedDatabaseAtPath:nil withConfiguration:nil options:nil error:&error];
     assertThat(persistentStore, is(notNilValue()));
     [managedObjectStore createManagedObjectContexts];
-
+    
     // Check for a SQLite write-ahead log
     NSString *writeAheadLogFile = [storePath stringByAppendingString:@"-wal"];
     if ([[NSFileManager defaultManager] fileExistsAtPath:writeAheadLogFile]) {
         NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:writeAheadLogFile error:&error];
         NSDate *creationDate = attributes[NSFileCreationDate];
-
+        
         BOOL success = [managedObjectStore resetPersistentStores:&error];
         expect(success).to.equal(YES);
-
+        
         attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:writeAheadLogFile error:&error];
         NSDate *newCreationDate = attributes[NSFileCreationDate];
-
+        
         expect([creationDate laterDate:newCreationDate]).to.equal(newCreationDate);
     } else {
         // Check that there is a support directory
@@ -441,7 +450,7 @@ static NSManagedObjectModel *RKManagedObjectModelWithNameAtVersion(NSString *mod
     NSURL *modelURL = RKURLForManagedObjectModelWithNameAtVersion(@"VersionedModel", 1);
     BOOL success = [RKManagedObjectStore migratePersistentStoreOfType:NSSQLiteStoreType atURL:storeURL toModelAtURL:modelURL error:&error configuringModelsWithBlock:nil];
     expect(success).to.equal(NO);
-
+    
     // Under iOS 7+ we get a NSFileReadNoSuchFileError
     expect(error.code == 0 || error.code == NSFileReadNoSuchFileError).to.beTruthy();
 }
@@ -488,7 +497,7 @@ static NSManagedObjectModel *RKManagedObjectModelWithNameAtVersion(NSString *mod
     BOOL success = [RKManagedObjectStore migratePersistentStoreOfType:NSSQLiteStoreType atURL:storeURL toModelAtURL:modelURL error:&error configuringModelsWithBlock:nil];
     expect(success).to.equal(NO);
     expect(error).notTo.beNil();
-    expect(error.code).to.equal(NSMigrationMissingSourceModelError);    
+    expect(error.code).to.equal(NSMigrationMissingSourceModelError);
     assertThat([error localizedDescription], startsWith(@"Migration failed: Unable to find the source managed object model used to create the SQLite store at path"));
 }
 
@@ -559,7 +568,7 @@ static NSManagedObjectModel *RKManagedObjectModelWithNameAtVersion(NSString *mod
     // Add search indexing on the title attribute
     NSEntityDescription *articleEntity = [model_v2 entitiesByName][@"Article"];
     [RKSearchIndexer addSearchIndexingToEntity:articleEntity onAttributes:@[ @"title" ]];
-     
+    
     RKManagedObjectStore *managedObjectStore = [[RKManagedObjectStore alloc] initWithManagedObjectModel:model_v2];
     NSString *storePath = [RKApplicationDataDirectory() stringByAppendingPathComponent:@"TestStore.sqlite"];
     NSError *error = nil;
@@ -624,6 +633,43 @@ static NSManagedObjectModel *RKManagedObjectModelWithNameAtVersion(NSString *mod
     }];
     expect(success).to.equal(YES);
     expect(error).to.beNil();
+}
+
+- (void)testSetOfManagedObjectIDsFromManagedObjectContextDidSaveNotification {
+    
+    NSManagedObjectModel *managedObjectModel = RKManagedObjectModel();
+    NSEntityDescription *entity = [managedObjectModel entitiesByName][@"Human"];
+    
+    NSPersistentStoreCoordinator *persistentStoreCoordinator = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel:managedObjectModel];
+    NSError *error;
+    [persistentStoreCoordinator addPersistentStoreWithType:NSInMemoryStoreType configuration:nil URL:nil options:nil error:&error];
+    NSManagedObjectContext *managedObjectContext = [[NSManagedObjectContext alloc] initWithConcurrencyType:NSMainQueueConcurrencyType];
+    managedObjectContext.persistentStoreCoordinator = persistentStoreCoordinator;
+    
+    __block NSUInteger count = 0;
+    
+    NSManagedObject *human1 = [NSEntityDescription insertNewObjectForEntityForName:entity.name inManagedObjectContext:managedObjectContext];
+    [managedObjectContext save:NULL];
+    
+    NSManagedObject *human2 = [NSEntityDescription insertNewObjectForEntityForName:entity.name inManagedObjectContext:managedObjectContext];
+    [managedObjectContext save:NULL];
+    
+    self.observerReference = [[NSNotificationCenter defaultCenter] addObserverForName:NSManagedObjectContextDidSaveNotification object:managedObjectContext queue:nil usingBlock:^(NSNotification *notification) {
+        NSSet *set = RKSetOfManagedObjectIDsFromManagedObjectContextDidSaveNotification(notification);
+        count = set.count;
+    }];
+    
+    [human1 setValue:@"Jane Doe" forKey:@"name"];
+    [managedObjectContext deleteObject:human2];
+    
+    [NSEntityDescription insertNewObjectForEntityForName:entity.name inManagedObjectContext:managedObjectContext];
+    [managedObjectContext save:NULL];
+    
+    // 1 inserted
+    // 1 updated
+    // 1 deleted
+    expect(count).will.equal(3);
+    
 }
 
 @end
